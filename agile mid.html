@@ -1,0 +1,1447 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>MindMate v4 — AI Student Stress Detection</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;500;600&display=swap"
+        rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+    <style>
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0
+        }
+
+        html,
+        body {
+            background: #050912;
+            min-height: 100%;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            color: #cce4ff
+        }
+
+        ::-webkit-scrollbar {
+            width: 4px
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #183460;
+            border-radius: 4px
+        }
+
+        input,
+        textarea,
+        button,
+        select {
+            font-family: 'Plus Jakarta Sans', sans-serif
+        }
+
+        video {
+            display: block;
+            background: #000
+        }
+
+        @keyframes fadeUp {
+            from {
+                opacity: 0;
+                transform: translateY(16px)
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0)
+            }
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0
+            }
+
+            to {
+                opacity: 1
+            }
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-12px)
+            }
+
+            to {
+                opacity: 1;
+                transform: translateX(0)
+            }
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg)
+            }
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1;
+                transform: scale(1)
+            }
+
+            50% {
+                opacity: .4;
+                transform: scale(1.2)
+            }
+        }
+
+        @keyframes blink {
+
+            0%,
+            100% {
+                opacity: 1
+            }
+
+            50% {
+                opacity: 0
+            }
+        }
+
+        @keyframes glow {
+
+            0%,
+            100% {
+                box-shadow: 0 0 16px #00e5ff18
+            }
+
+            50% {
+                box-shadow: 0 0 40px #00e5ff55
+            }
+        }
+
+        @keyframes scanLine {
+            0% {
+                top: -3%
+            }
+
+            100% {
+                top: 103%
+            }
+        }
+
+        @keyframes voiceBar {
+
+            0%,
+            100% {
+                transform: scaleY(.25)
+            }
+
+            50% {
+                transform: scaleY(1)
+            }
+        }
+
+        @keyframes bounceUp {
+
+            0%,
+            100% {
+                transform: translateY(0)
+            }
+
+            50% {
+                transform: translateY(-6px)
+            }
+        }
+
+        @keyframes ripple {
+            to {
+                transform: scale(2.4);
+                opacity: 0
+            }
+        }
+
+        .fu {
+            animation: fadeUp .48s cubic-bezier(.22, 1, .36, 1) both
+        }
+
+        .fi {
+            animation: fadeIn .32s ease both
+        }
+
+        .si {
+            animation: slideIn .36s ease both
+        }
+
+        .hov:hover {
+            filter: brightness(1.1);
+            transform: translateY(-1px);
+            transition: all .2s
+        }
+
+        .hov:active {
+            transform: translateY(0)
+        }
+
+        .nav-btn:hover {
+            background: #0e1e38 !important;
+            color: #cce4ff !important
+        }
+
+        .card-h:hover {
+            border-color: #183460 !important;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 32px #00000033;
+            transition: all .2s
+        }
+    </style>
+</head>
+
+<body>
+    <div id="root"></div>
+    <script type="text/babel">
+        const { useState, useEffect, useRef, useCallback } = React;
+
+        /* ===== CONFIG ===== */
+        const API = window.location.protocol === "file:" ? "http://localhost:5050/api" : "/api";
+
+        const C = {
+            bg: "#050912", bg1: "#08101f", bg2: "#0a1526",
+            card: "#0c1830", card2: "#0e1e38",
+            b0: "#112440", b1: "#183460",
+            cyan: "#00e5ff", cA: "#00e5ff14", cB: "#00e5ff44",
+            lime: "#a8ff3e", lA: "#a8ff3e14",
+            rose: "#ff3e6c", rA: "#ff3e6c14",
+            amber: "#ffbe00", aA: "#ffbe0014",
+            violet: "#b06bff", vA: "#b06bff14",
+            txt: "#cce4ff", sub: "#3d6080", dim: "#182e45",
+        };
+
+        const LVL = {
+            Low: { c: "#a8ff3e", bg: "#081a04", em: "🌿", label: "Low Stress" },
+            Moderate: { c: "#ffbe00", bg: "#1a1400", em: "🌤", label: "Moderate Stress" },
+            High: { c: "#ff7a40", bg: "#1a0900", em: "⚠️", label: "High Stress" },
+            Severe: { c: "#ff3e6c", bg: "#1a0010", em: "🔴", label: "Severe Stress" },
+        };
+
+        const RECS = {
+            Low: ["Keep your sleep routine consistent.", "Stay hydrated and take outdoor breaks.", "Maintain social connections."],
+            Moderate: ["Try 4-7-8 breathing: in 4s, hold 7s, out 8s.", "Reduce screen time before bed.", "Use 45-min Pomodoro study blocks.", "Reach out to a friend today."],
+            High: ["Take 10 slow deep breaths right now.", "Walk 15 minutes — cuts cortisol by 26%.", "Reschedule non-urgent tasks.", "Call someone you trust.", "No caffeine after noon."],
+            Severe: ["Contact campus counseling immediately.", "You are not alone — support is available now.", "Drink water, sit quietly, breathe slowly.", "Call a trusted person right now.", "Ask for academic accommodations."],
+        };
+
+        /* ===== API ===== */
+        async function apiGet(p) { try { const r = await fetch(API + p, { signal: AbortSignal.timeout(5000) }); return r.ok ? r.json() : null; } catch { return null; } }
+        async function apiPost(p, b) { try { const r = await fetch(API + p, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(b) }); return r.ok ? r.json() : null; } catch { return null; } }
+
+        /* ===== UTILS ===== */
+        function grabFrame(v, q = .88) { const c = document.createElement("canvas"); c.width = v.videoWidth || 640; c.height = v.videoHeight || 480; c.getContext("2d").drawImage(v, 0, 0, c.width, c.height); return c.toDataURL("image/jpeg", q).split(",")[1]; }
+        function lvlFromScore(s) { return s <= 3 ? "Low" : s <= 5.5 ? "Moderate" : s <= 7.5 ? "High" : "Severe"; }
+        function fmtDate() { return new Date().toLocaleDateString("en-US", { month: "short", day: "numeric" }); }
+        function fmtTime() { return new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" }).replace(/^0/, ""); }
+        function seedHist() { const labels = []; for (let i = 0; i < 6; i++) { const d = new Date(); d.setDate(d.getDate() - i); labels.push(i === 0 ? "Today" : i === 1 ? "Yesterday" : d.toLocaleDateString("en-US", { month: "short", day: "numeric" })); } return labels.map((date, i) => { const s = parseFloat((3.8 + Math.sin(i * 1.2) * 1.6 + Math.random() * 1.1).toFixed(1)); return { id: "s" + i, date, time: "", stress_score: s, stress_level: lvlFromScore(s), source: ["face_scan", "voice", "combined", "face_scan", "voice", "combined"][i], confidence: 72 }; }); }
+
+        /* ===== COMPONENTS ===== */
+        function Spinner({ sz = 32, color = C.cyan, thick = 2.5 }) {
+            return <div style={{ width: sz, height: sz, borderRadius: "50%", flexShrink: 0, border: `${thick}px solid ${C.b0}`, borderTop: `${thick}px solid ${color}`, animation: "spin 1s linear infinite" }} />;
+        }
+
+        function Dot({ on = true, color = C.lime, size = 7 }) {
+            return <span style={{ width: size, height: size, borderRadius: "50%", display: "inline-block", flexShrink: 0, background: on ? color : C.dim, boxShadow: on ? `0 0 8px ${color}77` : "none", animation: on ? "pulse 2s infinite" : "none" }} />;
+        }
+
+        function Tag({ label, color, icon = "" }) {
+            return <span style={{ display: "inline-flex", alignItems: "center", gap: 4, background: `${color}18`, border: `1px solid ${color}33`, borderRadius: 20, padding: "3px 10px", color, fontSize: 11, fontFamily: "'JetBrains Mono',monospace", fontWeight: 500, flexShrink: 0 }}>
+                {icon ? icon + " " + label : label}
+            </span>;
+        }
+
+        function Gauge({ score, color, size = 90 }) {
+            const r = (size / 2) - 7, circ = 2 * Math.PI * r, dash = circ * (score / 10);
+            return (
+                <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ flexShrink: 0 }}>
+                    <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={C.b0} strokeWidth={5} />
+                    <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={color} strokeWidth={5}
+                        strokeDasharray={`${dash} ${circ}`} strokeLinecap="round"
+                        transform={`rotate(-90 ${size / 2} ${size / 2})`}
+                        style={{ filter: `drop-shadow(0 0 5px ${color}88)`, transition: "stroke-dasharray 1.2s ease" }} />
+                    <text x={size / 2} y={size / 2 + 1} textAnchor="middle" dominantBaseline="middle"
+                        fill={color} fontSize={size * .22} fontFamily="'Space Grotesk',sans-serif" fontWeight="700">{score}</text>
+                    <text x={size / 2} y={size / 2 + size * .17} textAnchor="middle"
+                        fill={C.sub} fontSize={size * .09} fontFamily="'JetBrains Mono',monospace">/10</text>
+                </svg>
+            );
+        }
+
+        function ProbBar({ name, pct, color }) {
+            const lv = LVL[name] || LVL.Low;
+            return (
+                <div style={{ marginBottom: 10 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
+                        <span style={{ color, fontSize: 12, fontWeight: 600 }}>{lv.em} {name}</span>
+                        <span style={{ color: C.sub, fontSize: 11, fontFamily: "'JetBrains Mono',monospace" }}>{pct}%</span>
+                    </div>
+                    <div style={{ height: 4, background: C.b0, borderRadius: 2, overflow: "hidden" }}>
+                        <div style={{ height: "100%", background: color, borderRadius: 2, width: `${pct}%`, transition: "width 1.1s ease" }} />
+                    </div>
+                </div>
+            );
+        }
+
+        function VoiceWave({ active, color = C.cyan }) {
+            return (
+                <div style={{ display: "flex", alignItems: "center", gap: 3, height: 30, padding: "0 4px" }}>
+                    {Array.from({ length: 18 }, (_, i) => (
+                        <div key={i} style={{
+                            width: 3, borderRadius: 2, background: color, opacity: .7,
+                            height: "100%", transformOrigin: "bottom",
+                            transform: active ? "scaleY(1)" : "scaleY(.2)",
+                            animation: active ? `voiceBar ${.5 + Math.random() * .7}s ${i * .035}s ease-in-out infinite` : "none",
+                            transition: "transform .3s ease"
+                        }} />
+                    ))}
+                </div>
+            );
+        }
+
+        /* ===== RESULT CARD ===== */
+        function ResultCard({ result, onReset, label = "Scan Again" }) {
+            const lv = LVL[result.stress_level] || LVL.Moderate;
+            const recs = result.recommendations || RECS[result.stress_level] || [];
+            return (
+                <div className="fu" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 18 }}>
+                    {/* LEFT */}
+                    <div style={{ display: "flex", flexDirection: "column", gap: 15 }}>
+                        {/* Hero */}
+                        <div style={{ background: `linear-gradient(140deg,${lv.bg},${C.card})`, border: `1px solid ${lv.c}44`, borderRadius: 20, padding: 24 }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 14 }}>
+                                <Gauge score={result.stress_score} color={lv.c} size={86} />
+                                <div style={{ flex: 1 }}>
+                                    <div style={{ color: C.sub, fontSize: 9, fontFamily: "'JetBrains Mono',monospace", letterSpacing: 1.5, marginBottom: 3 }}>STRESS LEVEL</div>
+                                    <div style={{ color: lv.c, fontFamily: "'Space Grotesk',sans-serif", fontWeight: 700, fontSize: 24, lineHeight: 1 }}>{lv.em} {result.stress_level}</div>
+                                    <div style={{ color: C.sub, fontSize: 11, marginTop: 4 }}>
+                                        {result.confidence}% confidence
+                                        {result.frames_analyzed ? ` · ${result.frames_analyzed} frames` : ""}
+                                        {result.word_count ? ` · ${result.word_count} words` : ""}
+                                    </div>
+                                    <div style={{ marginTop: 8, display: "flex", gap: 6, flexWrap: "wrap" }}>
+                                        {result.saved && <Tag label="Saved" color={C.lime} icon="✓" />}
+                                        {result.source && <Tag label={result.source.replace(/_/g, " ")} color={C.cyan} />}
+                                    </div>
+                                </div>
+                            </div>
+                            {/* Bar */}
+                            <div style={{ height: 5, background: C.b0, borderRadius: 3, overflow: "hidden", marginBottom: 12 }}>
+                                <div style={{ height: "100%", borderRadius: 3, width: `${(result.stress_score / 10) * 100}%`, background: `linear-gradient(90deg,${C.lime},${lv.c})`, transition: "width 1.2s ease" }} />
+                            </div>
+                            <p style={{ color: "#8cb8cc", fontSize: 13, lineHeight: 1.75 }}>{result.brief_summary}</p>
+                        </div>
+
+                        {/* Cues */}
+                        {(result.facial_cues?.length || result.voice_cues?.length || result.posture_cues?.length) ? (
+                            <div style={{ background: C.card, border: `1px solid ${C.b0}`, borderRadius: 18, padding: 20, display: "flex", flexDirection: "column", gap: 14 }}>
+                                {result.facial_cues?.length > 0 && (
+                                    <div>
+                                        <div style={{ color: C.cyan, fontFamily: "'JetBrains Mono',monospace", fontSize: 10, letterSpacing: 1, marginBottom: 8 }}>FACIAL CUES</div>
+                                        {result.facial_cues.map((c, i) => (
+                                            <div key={i} style={{ display: "flex", gap: 8, marginBottom: 6 }}>
+                                                <span style={{ color: C.cB, flexShrink: 0, marginTop: 2 }}>▸</span>
+                                                <span style={{ color: C.sub, fontSize: 12, lineHeight: 1.5 }}>{c}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                                {result.voice_cues?.length > 0 && (
+                                    <div>
+                                        <div style={{ color: C.violet, fontFamily: "'JetBrains Mono',monospace", fontSize: 10, letterSpacing: 1, marginBottom: 8 }}>VOICE CUES</div>
+                                        {result.voice_cues.map((c, i) => (
+                                            <div key={i} style={{ display: "flex", gap: 8, marginBottom: 6 }}>
+                                                <span style={{ color: "#b06bff44", flexShrink: 0, marginTop: 2 }}>▸</span>
+                                                <span style={{ color: C.sub, fontSize: 12, lineHeight: 1.5 }}>{c}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                                {result.posture_cues?.length > 0 && (
+                                    <div>
+                                        <div style={{ color: C.amber, fontFamily: "'JetBrains Mono',monospace", fontSize: 10, letterSpacing: 1, marginBottom: 8 }}>POSTURE</div>
+                                        {result.posture_cues.map((c, i) => (
+                                            <div key={i} style={{ display: "flex", gap: 8, marginBottom: 6 }}>
+                                                <span style={{ color: "#ffbe0044", flexShrink: 0, marginTop: 2 }}>▸</span>
+                                                <span style={{ color: C.sub, fontSize: 12, lineHeight: 1.5 }}>{c}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        ) : null}
+
+                        {/* Combined breakdown */}
+                        {result.face_score != null && result.voice_score != null && (
+                            <div style={{ background: C.card, border: `1px solid ${C.b0}`, borderRadius: 18, padding: 20 }}>
+                                <div style={{ color: C.txt, fontFamily: "'Space Grotesk',sans-serif", fontWeight: 600, fontSize: 13, marginBottom: 14 }}>Combined Breakdown</div>
+                                {[["👁 Face", result.face_score, result.face_level, C.cyan], ["🎙 Voice", result.voice_score, result.voice_level, C.violet]].map(([lbl, sc, lv2, col]) => (
+                                    <div key={lbl} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 12px", borderRadius: 10, marginBottom: 8, background: `${col}0a`, border: `1px solid ${col}22` }}>
+                                        <span style={{ color: C.sub, fontSize: 12 }}>{lbl}</span>
+                                        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                                            <span style={{ color: col, fontFamily: "'JetBrains Mono',monospace", fontWeight: 600, fontSize: 14 }}>{sc}/10</span>
+                                            {lv2 && <Tag label={lv2} color={LVL[lv2]?.c || C.sub} />}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+
+                    {/* RIGHT */}
+                    <div style={{ display: "flex", flexDirection: "column", gap: 15 }}>
+                        {/* Probabilities */}
+                        {result.probabilities && (
+                            <div style={{ background: C.card, border: `1px solid ${C.b0}`, borderRadius: 18, padding: 20 }}>
+                                <div style={{ color: C.txt, fontFamily: "'Space Grotesk',sans-serif", fontWeight: 600, fontSize: 13, marginBottom: 14 }}>Level Probabilities</div>
+                                {Object.keys(LVL).map(n => <ProbBar key={n} name={n} pct={result.probabilities[n] || 0} color={LVL[n].c} />)}
+                            </div>
+                        )}
+
+                        {/* Raw metrics (face) */}
+                        {result.raw_metrics && (
+                            <div style={{ background: C.card, border: `1px solid ${C.b0}`, borderRadius: 18, padding: 20 }}>
+                                <div style={{ color: C.txt, fontFamily: "'Space Grotesk',sans-serif", fontWeight: 600, fontSize: 13, marginBottom: 14 }}>Raw Face Metrics</div>
+                                {Object.entries(result.raw_metrics).map(([k, v]) => (
+                                    <div key={k} style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderBottom: `1px solid ${C.b0}` }}>
+                                        <span style={{ color: C.sub, fontSize: 11 }}>{k.replace(/_/g, " ")}</span>
+                                        <span style={{ color: C.cyan, fontFamily: "'JetBrains Mono',monospace", fontSize: 11 }}>{typeof v === "number" ? (v < 1 ? v.toFixed(3) : v.toFixed(1)) : String(v)}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+
+                        {/* Voice metrics */}
+                        {result.word_count != null && (
+                            <div style={{ background: C.card, border: `1px solid ${C.b0}`, borderRadius: 18, padding: 20 }}>
+                                <div style={{ color: C.txt, fontFamily: "'Space Grotesk',sans-serif", fontWeight: 600, fontSize: 13, marginBottom: 14 }}>Voice Metrics</div>
+                                {[["Words spoken", result.word_count], ["Speech rate", `${result.words_per_sec} w/s`], ["Stress keywords", result.high_stress_words_found], ["Positive words", result.positive_words_found], ["Filler words", result.filler_count]].map(([k, v]) => (
+                                    <div key={k} style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderBottom: `1px solid ${C.b0}` }}>
+                                        <span style={{ color: C.sub, fontSize: 11 }}>{k}</span>
+                                        <span style={{ color: C.violet, fontFamily: "'JetBrains Mono',monospace", fontSize: 11 }}>{v}</span>
+                                    </div>
+                                ))}
+                                {result.transcript && (
+                                    <div style={{ marginTop: 10, padding: "8px 10px", background: C.bg2, borderRadius: 8, border: `1px solid ${C.b0}`, color: C.sub, fontSize: 11, lineHeight: 1.6, fontStyle: "italic" }}>
+                                        "{result.transcript.slice(0, 180)}{result.transcript.length > 180 ? "…" : ""}"
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {/* Recommendations */}
+                        <div style={{ background: C.card, border: `1px solid ${C.b0}`, borderRadius: 18, padding: 20, flex: 1 }}>
+                            <div style={{ color: C.txt, fontFamily: "'Space Grotesk',sans-serif", fontWeight: 600, fontSize: 13, marginBottom: 14 }}>Recommendations</div>
+                            {recs.map((r, i) => (
+                                <div key={i} className="si" style={{ display: "flex", gap: 10, marginBottom: 10, padding: "10px 12px", borderRadius: 10, animationDelay: `${i * .1}s`, background: `${lv.c}09`, border: `1px solid ${lv.c}20` }}>
+                                    <div style={{ width: 20, height: 20, borderRadius: "50%", flexShrink: 0, background: `${lv.c}1a`, display: "flex", alignItems: "center", justifyContent: "center", color: lv.c, fontSize: 9, fontWeight: 700, fontFamily: "'Space Grotesk',sans-serif" }}>{i + 1}</div>
+                                    <span style={{ color: "#8cb8cc", fontSize: 12, lineHeight: 1.65 }}>{r}</span>
+                                </div>
+                            ))}
+                        </div>
+
+                        <button className="hov" onClick={onReset} style={{ padding: "13px", borderRadius: 12, border: "none", cursor: "pointer", background: "linear-gradient(135deg,#00e5ff,#b06bff)", color: "#050912", fontFamily: "'Space Grotesk',sans-serif", fontWeight: 700, fontSize: 14, boxShadow: "0 6px 28px #00e5ff22" }}>
+                            Scan Again
+                        </button>
+                    </div>
+                </div>
+            );
+        }
+
+        /* ===== SIDEBAR ===== */
+        function Sidebar({ tab, setTab, last, ok, checking }) {
+            const lv = last ? LVL[last.stress_level] : null;
+            const nav = [
+                { id: "dash", icon: "🏠", label: "Dashboard" },
+                { id: "face", icon: "👁", label: "Face Scan", badge: "OPENCV" },
+                { id: "voice", icon: "🎙", label: "Voice Scan", badge: "NLP" },
+                { id: "combined", icon: "⚡", label: "Combined", badge: "BEST" },
+                { id: "chat", icon: "💬", label: "AI Chat" },
+                { id: "tracker", icon: "📈", label: "Tracker" },
+                { id: "wellness", icon: "🌿", label: "Wellness" },
+            ];
+            return (
+                <aside style={{ width: 214, minHeight: "100vh", background: C.card, borderRight: `1px solid ${C.b0}`, display: "flex", flexDirection: "column", position: "fixed", left: 0, top: 0, zIndex: 300, boxShadow: "4px 0 20px #00000033" }}>
+                    {/* Logo */}
+                    <div style={{ padding: "18px 14px 14px", borderBottom: `1px solid ${C.b0}` }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
+                            <div style={{ width: 40, height: 40, borderRadius: 12, flexShrink: 0, animation: "glow 3s infinite", background: "linear-gradient(135deg,#00e5ff,#b06bff)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20 }}>🧘</div>
+                            <div>
+                                <div style={{ fontFamily: "'Space Grotesk',sans-serif", fontWeight: 700, fontSize: 18, color: C.txt, letterSpacing: -.3 }}>MindMate</div>
+                                <div style={{ fontSize: 8, color: C.cyan, letterSpacing: 3, fontFamily: "'JetBrains Mono',monospace" }}>v4 ENHANCED</div>
+                            </div>
+                        </div>
+                        <div style={{ display: "flex", alignItems: "center", gap: 7, padding: "6px 10px", background: C.bg2, borderRadius: 8, border: `1px solid ${ok ? "#a8ff3e33" : C.b0}`, transition: "border-color .4s" }}>
+                            {checking && !ok
+                                ? <div style={{ width: 7, height: 7, borderRadius: "50%", background: C.cyan, animation: "blink .7s infinite", flexShrink: 0 }} />
+                                : <Dot on={ok} color={ok ? C.lime : C.rose} size={7} />}
+                            <span style={{ fontSize: 10, fontFamily: "'JetBrains Mono',monospace", color: ok ? C.lime : checking ? C.cyan : C.rose, transition: "color .4s" }}>
+                                {ok ? "backend online" : checking ? "connecting…" : "backend offline"}
+                            </span>
+                        </div>
+                    </div>
+
+                    {/* Last scan mini */}
+                    {last && lv && (
+                        <div style={{ margin: "10px 10px 0", borderRadius: 10, padding: "10px 12px", background: `${lv.c}0d`, border: `1px solid ${lv.c}22` }}>
+                            <div style={{ fontSize: 9, fontFamily: "'JetBrains Mono',monospace", color: C.sub, letterSpacing: 1, marginBottom: 6 }}>LAST RESULT</div>
+                            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                                <Gauge score={last.stress_score} color={lv.c} size={46} />
+                                <div>
+                                    <div style={{ color: lv.c, fontFamily: "'Space Grotesk',sans-serif", fontWeight: 700, fontSize: 13 }}>{last.stress_level}</div>
+                                    <div style={{ color: C.sub, fontSize: 10, marginTop: 2 }}>{last.source?.replace(/_/g, " ")}</div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Nav */}
+                    <nav style={{ flex: 1, padding: "10px 8px", overflowY: "auto" }}>
+                        {nav.map(n => (
+                            <button key={n.id} className="nav-btn" onClick={() => setTab(n.id)} style={{
+                                width: "100%", display: "flex", alignItems: "center", gap: 9, padding: "9px 10px",
+                                borderRadius: 8, border: "none", cursor: "pointer", marginBottom: 2, textAlign: "left",
+                                background: tab === n.id ? C.cA : "transparent",
+                                color: tab === n.id ? C.cyan : C.sub,
+                                fontFamily: "'Plus Jakarta Sans',sans-serif", fontWeight: tab === n.id ? 600 : 400, fontSize: 13,
+                                borderLeft: tab === n.id ? `2px solid ${C.cyan}` : "2px solid transparent",
+                                transition: "all .18s"
+                            }}>
+                                <span style={{ fontSize: 14, flexShrink: 0 }}>{n.icon}</span>
+                                <span style={{ flex: 1 }}>{n.label}</span>
+                                {n.badge && <span style={{ fontSize: 7, fontFamily: "'JetBrains Mono',monospace", padding: "2px 5px", borderRadius: 4, background: tab === n.id ? C.cB : C.b0, color: tab === n.id ? C.cyan : C.sub, letterSpacing: 1 }}>{n.badge}</span>}
+                            </button>
+                        ))}
+                    </nav>
+
+                    {/* User */}
+                    <div style={{ padding: "12px 14px", borderTop: `1px solid ${C.b0}` }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
+                            <div style={{ width: 32, height: 32, borderRadius: "50%", flexShrink: 0, background: "linear-gradient(135deg,#b06bff,#00e5ff)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 700, color: "#fff", fontFamily: "'Space Grotesk',sans-serif" }}>A</div>
+                            <div>
+                                <div style={{ color: C.txt, fontSize: 12, fontWeight: 600 }}>Alex Johnson</div>
+                                <div style={{ color: C.sub, fontSize: 10 }}>CS · Year 3</div>
+                            </div>
+                        </div>
+                    </div>
+                </aside>
+            );
+        }
+
+        /* ===== TOPBAR ===== */
+        const PAGE_TITLES = {
+            dash: "Dashboard", face: "Face Scan", voice: "Voice Scan",
+            combined: "Combined Scan", chat: "AI Chat", tracker: "Stress Tracker", wellness: "Wellness Center"
+        };
+        const PAGE_SUBS = {
+            dash: "Your wellness overview at a glance",
+            face: "OpenCV real-time facial stress detection — runs on backend",
+            voice: "Speech pattern analysis for stress detection — runs on backend",
+            combined: "Face + Voice together for highest accuracy",
+            chat: "AI wellness companion with full scan context",
+            tracker: "Historical trends synced from Flask backend",
+            wellness: "Breathing exercises, tips, and self-care tools",
+        };
+        function Topbar({ tab, ok, checking }) {
+            return (
+                <div style={{ position: "sticky", top: 0, zIndex: 200, background: C.card, borderBottom: `1px solid ${C.b0}`, padding: "12px 24px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                    <div>
+                        <h1 style={{ fontFamily: "'Space Grotesk',sans-serif", fontWeight: 700, fontSize: 19, color: C.txt, lineHeight: 1.1 }}>{PAGE_TITLES[tab] || "MindMate"}</h1>
+                        <div style={{ color: C.sub, fontSize: 11, marginTop: 2 }}>{PAGE_SUBS[tab] || ""}</div>
+                    </div>
+                    <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                        <Tag label="OpenCV Face" color={C.lime} icon="👁" />
+                        <Tag label="Voice NLP" color={C.violet} icon="🎙" />
+                        <div style={{
+                            display: "flex", alignItems: "center", gap: 6, borderRadius: 20, padding: "5px 12px", transition: "all .4s",
+                            background: ok ? "#a8ff3e0e" : checking ? "#00e5ff0a" : "#ff3e6c0e",
+                            border: `1px solid ${ok ? "#a8ff3e28" : checking ? C.cB : "#ff3e6c28"}`
+                        }}>
+                            {checking && !ok
+                                ? <div style={{ width: 6, height: 6, borderRadius: "50%", background: C.cyan, animation: "blink .7s infinite" }} />
+                                : <Dot on={ok} color={ok ? C.lime : C.rose} size={6} />}
+                            <span style={{ color: ok ? C.lime : checking ? C.cyan : C.rose, fontSize: 11, fontFamily: "'JetBrains Mono',monospace", transition: "color .4s" }}>
+                                {ok ? "live" : checking ? "connecting…" : "offline"}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        /* ===== FACE SCAN PAGE ===== */
+        function FaceScanPage({ onResult, ok }) {
+            const vRef = useRef(null), streamRef = useRef(null), timerRef = useRef(null), framesRef = useRef([]);
+            const [phase, setPhase] = useState("idle");
+            const [sec, setSec] = useState(0);
+            const [flash, setFlash] = useState(false);
+            const [result, setResult] = useState(null);
+            const [err, setErr] = useState("");
+            const MIN = 4;
+
+            useEffect(() => () => { stopCam(); clearInterval(timerRef.current); }, []);
+            function stopCam() { streamRef.current?.getTracks().forEach(t => t.stop()); streamRef.current = null; }
+
+            async function startCam() {
+                setErr(""); setPhase("perm");
+                try {
+                    const constraints = { video: { width: { ideal: 640 }, height: { ideal: 480 } }, audio: false };
+                    const s = await navigator.mediaDevices.getUserMedia(constraints);
+                    streamRef.current = s;
+                    if (vRef.current) { vRef.current.srcObject = s; await vRef.current.play(); }
+                    setPhase("live");
+                } catch (e) {
+                    console.error("Camera Error:", e);
+                    let msg = "Could not start camera.";
+                    if (e.name === "NotAllowedError") msg = "Camera permission denied. Please allow camera access in your browser settings.";
+                    else if (e.name === "NotFoundError") msg = "No camera found. Please ensure your webcam is connected.";
+                    else if (e.name === "NotReadableError" || e.message?.includes("Timeout")) {
+                        msg = "Camera Timeout / Hardware Error. Your webcam is not responding. Please try: (1) Closing other apps, (2) Restarting browser, (3) Checking Device Manager.";
+                    }
+                    else if (window.location.protocol === "http:" && window.location.hostname !== "localhost") {
+                        msg = "Camera access blocked. Browsers only allow camera on 'localhost' or 'https' sites. Use http://localhost:5050 instead.";
+                    } else {
+                        msg = `Camera Error: ${e.message || e.name || "Unknown error"}`;
+                    }
+                    setErr(msg);
+                    setPhase("idle");
+                }
+            }
+
+            function startRec() {
+                framesRef.current = []; setSec(0); setPhase("rec");
+                let t = 0;
+                timerRef.current = setInterval(() => {
+                    t++; setSec(t);
+                    if (vRef.current?.readyState >= 2) {
+                        try { framesRef.current.push(grabFrame(vRef.current)); setFlash(true); setTimeout(() => setFlash(false), 100); } catch { }
+                    }
+                }, 1000);
+            }
+
+            async function stopAnalyze() {
+                clearInterval(timerRef.current); setPhase("proc");
+                const frames = framesRef.current.slice(0, 8);
+                if (!frames.length) { setErr("No frames captured."); setPhase("live"); return; }
+                stopCam();
+                let res = null;
+                if (ok) res = await apiPost("/face/analyze", { frames });
+                if (!res) {
+                    await new Promise(r => setTimeout(r, 1600));
+                    const s = parseFloat((3.2 + Math.random() * 4.2).toFixed(1));
+                    const lv = lvlFromScore(s);
+                    res = {
+                        stress_score: s, stress_level: lv, confidence: 65, face_detected: true, frames_analyzed: frames.length,
+                        facial_cues: ["Simulated result — backend offline", "Start backend for real OpenCV analysis"],
+                        posture_cues: ["Run: python backend.py"], observations: ["Backend not connected"],
+                        brief_summary: "Simulated result. Start backend.py for real OpenCV face analysis.",
+                        recommendations: RECS[lv], source: "face_sim"
+                    };
+                }
+                setResult(res); onResult(res); setPhase("done");
+            }
+
+            function reset() { setResult(null); setPhase("idle"); setErr(""); setSec(0); framesRef.current = []; }
+
+            if (phase === "idle") return (
+                <div className="fu" style={{ background: C.card, border: `1px solid ${C.b1}`, borderRadius: 22, padding: "50px 40px", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: 24 }}>
+                    <div style={{ position: "relative", width: 100, height: 100 }}>
+                        <div style={{ width: 100, height: 100, borderRadius: "50%", animation: "glow 3s infinite", background: `${C.cA}`, border: `2px solid ${C.cB}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 44 }}>👁</div>
+                        <div style={{ position: "absolute", top: -4, right: -4, width: 28, height: 28, borderRadius: "50%", background: C.lime, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700 }}>🔬</div>
+                    </div>
+                    <div>
+                        <h2 style={{ fontFamily: "'Space Grotesk',sans-serif", fontWeight: 700, fontSize: 26, color: C.txt, marginBottom: 10 }}>OpenCV Face Stress Detection</h2>
+                        <p style={{ color: C.sub, fontSize: 14, maxWidth: 540, lineHeight: 1.85, margin: "0 auto" }}>
+                            Webcam frames are sent to your <strong style={{ color: C.cyan }}>Python backend</strong> where real <strong style={{ color: C.lime }}>OpenCV Haarcascade</strong> analysis detects brow tension, eye state, facial symmetry, and muscle activity — no cloud API needed.
+                        </p>
+                    </div>
+                    {!ok && <div style={{ background: C.aA, border: `1px solid #ffbe0033`, borderRadius: 12, padding: "12px 20px", color: C.amber, fontSize: 13, maxWidth: 460 }}>
+                        Backend offline — results will be simulated. Run: <code style={{ fontFamily: "'JetBrains Mono',monospace", background: C.bg2, padding: "1px 6px", borderRadius: 4 }}>python backend.py</code>
+                    </div>}
+                    {err && <div style={{ background: C.rA, border: `1px solid #ff3e6c33`, borderRadius: 10, padding: "11px 20px", color: C.rose, fontSize: 13 }}>{err}</div>}
+                    <div style={{ display: "flex", gap: 13, flexWrap: "wrap", justifyContent: "center" }}>
+                        {[["🎯", "Haarcascade", "OpenCV face + eye detection on every frame"], ["😤", "Brow Tension", "Edge density measures facial muscle tension"], ["👁", "Eye Tracking", "Detects open/closed/squinting patterns"], ["📐", "Symmetry", "Facial symmetry score correlates with stress"]].map(([ic, t, d], i) => (
+                            <div key={i} style={{ background: C.bg2, border: `1px solid ${C.b0}`, borderRadius: 14, padding: "16px 14px", width: 158, textAlign: "center" }}>
+                                <div style={{ fontSize: 22, marginBottom: 7 }}>{ic}</div>
+                                <div style={{ color: C.txt, fontFamily: "'Space Grotesk',sans-serif", fontWeight: 600, fontSize: 12, marginBottom: 4 }}>{t}</div>
+                                <div style={{ color: C.sub, fontSize: 11, lineHeight: 1.5 }}>{d}</div>
+                            </div>
+                        ))}
+                    </div>
+                    <button className="hov" onClick={startCam} style={{ padding: "15px 50px", borderRadius: 12, border: "none", cursor: "pointer", background: "linear-gradient(135deg,#00e5ff,#b06bff)", color: "#050912", fontFamily: "'Space Grotesk',sans-serif", fontWeight: 700, fontSize: 15, boxShadow: "0 6px 28px #00e5ff22" }}>
+                        📷  Enable Camera
+                    </button>
+                </div>
+            );
+
+            if (phase === "perm") return (
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "100px 20px", gap: 14 }}>
+                    <Spinner sz={52} /><div style={{ color: C.cyan, fontFamily: "'Space Grotesk',sans-serif", fontWeight: 700, fontSize: 18 }}>Requesting camera access…</div>
+                </div>
+            );
+
+            if (phase === "live" || phase === "rec") return (
+                <div className="fu" style={{ display: "grid", gridTemplateColumns: "1fr 340px", gap: 18, alignItems: "start" }}>
+                    <div style={{ borderRadius: 20, overflow: "hidden", position: "relative", border: `2px solid ${flash ? C.cyan : C.b1}`, boxShadow: flash ? `0 0 32px ${C.cyan}44` : "none", transition: "all .1s" }}>
+                        <video ref={vRef} autoPlay muted playsInline style={{ width: "100%", transform: "scaleX(-1)" }} />
+                        {phase === "rec" && <div style={{ position: "absolute", left: 0, right: 0, height: 2, pointerEvents: "none", background: `linear-gradient(90deg,transparent,${C.cyan}bb,transparent)`, animation: "scanLine 2s linear infinite" }} />}
+                        {[["top", "left"], ["top", "right"], ["bottom", "left"], ["bottom", "right"]].map(([v, h], i) => (
+                            <div key={i} style={{ position: "absolute", [v]: 12, [h]: 12, width: 22, height: 22, [`border${v[0].toUpperCase() + v.slice(1)}`]: `2px solid ${C.cyan}`, [`border${h[0].toUpperCase() + h.slice(1)}`]: `2px solid ${C.cyan}` }} />
+                        ))}
+                        {phase === "rec" && (
+                            <div style={{ position: "absolute", top: 13, left: "50%", transform: "translateX(-50%)", background: "#ff3e6cdd", borderRadius: 30, padding: "4px 14px", fontSize: 11, fontFamily: "'JetBrains Mono',monospace", color: "#fff", display: "flex", alignItems: "center", gap: 7 }}>
+                                <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#fff", animation: "blink 1s infinite" }} />
+                                SCANNING {sec}s · {framesRef.current.length} frames
+                            </div>
+                        )}
+                        <div style={{ position: "absolute", bottom: 12, left: "50%", transform: "translateX(-50%)", whiteSpace: "nowrap", background: "#050912bb", borderRadius: 7, padding: "4px 13px", color: C.sub, fontSize: 11 }}>
+                            {phase === "live" ? "Center your face · Good lighting" : sec < MIN ? `Keep still — ${MIN - sec}s more` : "Ready — stop anytime"}
+                        </div>
+                    </div>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                        <div style={{ background: C.card, border: `1px solid ${C.b1}`, borderRadius: 16, padding: 18 }}>
+                            <div style={{ color: C.sub, fontSize: 9, fontFamily: "'JetBrains Mono',monospace", letterSpacing: 1.5, marginBottom: 9 }}>STATUS</div>
+                            {phase === "live" && <div style={{ color: C.lime, fontFamily: "'Space Grotesk',sans-serif", fontWeight: 600, fontSize: 14, display: "flex", alignItems: "center", gap: 8 }}><Dot color={C.lime} />Camera active</div>}
+                            {phase === "rec" && <>
+                                <div style={{ color: C.rose, fontFamily: "'Space Grotesk',sans-serif", fontWeight: 600, fontSize: 14, marginBottom: 10, display: "flex", alignItems: "center", gap: 8 }}><span style={{ animation: "blink 1s infinite" }}>⏺</span>Recording {sec}s</div>
+                                <div style={{ height: 4, background: C.b0, borderRadius: 2, overflow: "hidden", marginBottom: 7 }}>
+                                    <div style={{ height: "100%", borderRadius: 2, width: `${Math.min((sec / MIN) * 100, 100)}%`, background: `linear-gradient(90deg,${C.cyan},${C.violet})`, transition: "width .8s" }} />
+                                </div>
+                                <div style={{ color: C.sub, fontSize: 11, fontFamily: "'JetBrains Mono',monospace" }}>{framesRef.current.length} frames captured</div>
+                            </>}
+                        </div>
+                        <div style={{ background: C.card, border: `1px solid ${C.b0}`, borderRadius: 16, padding: 16 }}>
+                            <div style={{ color: C.sub, fontSize: 9, fontFamily: "'JetBrains Mono',monospace", letterSpacing: 1.5, marginBottom: 9 }}>TIPS</div>
+                            {[["💡", "Good even face lighting"], ["👤", "Face fully centered"], ["😐", "Behave naturally"], ["📐", "~50cm from camera"], ["🚫", "Minimize movement"]].map(([em, t], i) => (
+                                <div key={i} style={{ display: "flex", gap: 8, marginBottom: 7 }}><span>{em}</span><span style={{ color: C.sub, fontSize: 12 }}>{t}</span></div>
+                            ))}
+                        </div>
+                        {phase === "live" && <button className="hov" onClick={startRec} style={{ padding: "13px", borderRadius: 11, border: "none", cursor: "pointer", background: "linear-gradient(135deg,#ff3e6c,#ff7a40)", color: "#fff", fontFamily: "'Space Grotesk',sans-serif", fontWeight: 700, fontSize: 14, boxShadow: "0 4px 20px #ff3e6c33" }}>⏺  Start Scanning</button>}
+                        {phase === "rec" && <button className="hov" onClick={stopAnalyze} disabled={sec < MIN} style={{ padding: "13px", borderRadius: 11, border: "none", cursor: sec >= MIN ? "pointer" : "not-allowed", background: sec >= MIN ? "linear-gradient(135deg,#00e5ff,#b06bff)" : C.dim, color: sec >= MIN ? "#050912" : C.sub, fontFamily: "'Space Grotesk',sans-serif", fontWeight: 700, fontSize: 14, boxShadow: sec >= MIN ? "0 4px 20px #00e5ff22" : "none" }}>
+                            {sec < MIN ? `⏳ ${MIN - sec}s more…` : "🔬 Stop + Analyze"}
+                        </button>}
+                        <button onClick={() => { stopCam(); reset(); }} style={{ padding: "9px", borderRadius: 10, border: `1px solid ${C.b0}`, background: "transparent", color: C.sub, fontSize: 13, cursor: "pointer" }}>✕ Cancel</button>
+                    </div>
+                </div>
+            );
+
+            if (phase === "proc") return (
+                <div style={{ background: C.card, border: `1px solid ${C.b1}`, borderRadius: 22, padding: "70px 40px", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: 20 }}>
+                    <div style={{ position: "relative", width: 88, height: 88 }}>
+                        <div style={{ position: "absolute", inset: 0, border: `3px solid ${C.b0}`, borderTop: `3px solid ${C.cyan}`, borderRadius: "50%", animation: "spin 1s linear infinite" }} />
+                        <div style={{ position: "absolute", inset: 12, border: `2px solid ${C.b0}`, borderBottom: `2px solid ${C.lime}`, borderRadius: "50%", animation: "spin 1.5s linear infinite reverse" }} />
+                        <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 26 }}>👁</div>
+                    </div>
+                    <div style={{ fontFamily: "'Space Grotesk',sans-serif", fontWeight: 700, fontSize: 21, color: C.txt }}>OpenCV Analyzing Frames…</div>
+                    <div style={{ color: C.sub, fontSize: 13, lineHeight: 1.8 }}>Sending {framesRef.current.length} frames to Python backend<br />Running Haarcascade face detection + stress metrics</div>
+                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "center" }}>
+                        {["Face detection", "Eye tracking", "Brow tension", "Symmetry", "Stress score"].map((s, i) => (
+                            <div key={i} style={{ padding: "5px 12px", background: C.bg2, border: `1px solid ${C.b0}`, borderRadius: 20, color: C.sub, fontSize: 10, fontFamily: "'JetBrains Mono',monospace", animation: `fadeIn .6s ${i * .18}s both` }}>⚙ {s}</div>
+                        ))}
+                    </div>
+                </div>
+            );
+
+            if (phase === "done" && result) return <ResultCard result={result} onReset={reset} label="New Face Scan" />;
+            return null;
+        }
+
+        /* ===== VOICE SCAN PAGE ===== */
+        function VoiceScanPage({ onResult, ok }) {
+            const [phase, setPhase] = useState("idle");
+            const [transcript, setTranscript] = useState("");
+            const [result, setResult] = useState(null);
+            const [dur, setDur] = useState(0);
+            const [active, setActive] = useState(false);
+            const [err, setErr] = useState("");
+            const recognRef = useRef(null), timerRef = useRef(null), startRef = useRef(0), listeningRef = useRef(false);
+
+            useEffect(() => () => { recognRef.current?.stop(); clearInterval(timerRef.current); }, []);
+
+            function startListen() {
+                setErr("");
+                const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+                if (!SR) { setErr("Speech Recognition not supported. Please use Chrome or Edge browser."); return; }
+                const r = new SR();
+                r.continuous = true; r.interimResults = true; r.lang = "en-US";
+                let full = "";
+                r.onresult = e => { let interim = ""; for (let i = e.resultIndex; i < e.results.length; i++) { if (e.results[i].isFinal) full += e.results[i][0].transcript + " "; else interim += e.results[i][0].transcript; } setTranscript((full + interim).trim()); };
+                r.onerror = e => {
+                    if (e.error === 'aborted') return;
+                    if (e.error === 'no-speech') {
+                        // ignore no-speech and let onend handle restarting if still listening
+                        return;
+                    }
+                    listeningRef.current = false;
+                    setErr("Mic error: " + e.error); setPhase("idle"); setActive(false);
+                };
+                r.onend = () => {
+                    // if still in listening phase, restart the recognition (it stopped due to silence)
+                    if (listeningRef.current) {
+                        setTimeout(() => {
+                            if (listeningRef.current) {
+                                try { recognRef.current?.start(); } catch (e) { console.error("Speech restart error:", e); }
+                            }
+                        }, 50);
+                    } else {
+                        setActive(false);
+                    }
+                };
+                r.start(); recognRef.current = r;
+                startRef.current = Date.now();
+                listeningRef.current = true;
+                setPhase("listening"); setActive(true); setTranscript(""); setDur(0);
+                timerRef.current = setInterval(() => setDur(Math.round((Date.now() - startRef.current) / 1000)), 500);
+            }
+
+            async function stopAnalyze() {
+                listeningRef.current = false;
+                recognRef.current?.stop(); clearInterval(timerRef.current);
+                const d = (Date.now() - startRef.current) / 1000;
+                setPhase("proc"); setActive(false);
+                let res = null;
+                if (ok && transcript.trim().length > 2) res = await apiPost("/voice/analyze", { transcript, duration: d });
+                if (!res) {
+                    await new Promise(r => setTimeout(r, 1200));
+                    const words = transcript.trim().split(/\s+/).filter(Boolean);
+                    const s = parseFloat(Math.min(9, 2.5 + words.length * .1 + ((transcript.includes("stress") || transcript.includes("anxious") || transcript.includes("overwhelm")) ? 2 : 0)).toFixed(1));
+                    const lv = lvlFromScore(s);
+                    res = { stress_score: s, stress_level: lv, confidence: 58, voice_analyzed: true, word_count: words.length, words_per_sec: parseFloat((words.length / Math.max(d, 1)).toFixed(2)), high_stress_words_found: 0, positive_words_found: 0, filler_count: 0, transcript: transcript.slice(0, 300), cues: ["Client-side fallback — start backend for full NLP"], brief_summary: `${words.length} words analyzed. ${lv} stress level detected.`, recommendations: RECS[lv], source: "voice_sim" };
+                }
+                setResult(res); onResult(res); setPhase("done");
+            }
+
+            function reset() { listeningRef.current = false; setResult(null); setPhase("idle"); setTranscript(""); setDur(0); setErr(""); }
+
+            if (phase === "idle") return (
+                <div className="fu" style={{ background: C.card, border: `1px solid ${C.b1}`, borderRadius: 22, padding: "50px 40px", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: 24 }}>
+                    <div style={{ position: "relative", width: 100, height: 100 }}>
+                        <div style={{ width: 100, height: 100, borderRadius: "50%", background: C.vA, border: `2px solid #b06bff44`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 44, animation: "glow 3s infinite" }}>🎙</div>
+                        <div style={{ position: "absolute", top: -4, right: -4, width: 28, height: 28, borderRadius: "50%", background: C.violet, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14 }}>📝</div>
+                    </div>
+                    <div>
+                        <h2 style={{ fontFamily: "'Space Grotesk',sans-serif", fontWeight: 700, fontSize: 26, color: C.txt, marginBottom: 10 }}>Voice Stress Detection</h2>
+                        <p style={{ color: C.sub, fontSize: 14, maxWidth: 540, lineHeight: 1.85, margin: "0 auto" }}>
+                            Speak for <strong style={{ color: C.violet }}>10-30 seconds</strong> about how you feel. The backend analyzes your <strong style={{ color: C.cyan }}>speech rate, stress keywords, filler words, and repetition</strong> to detect stress patterns.
+                        </p>
+                    </div>
+                    {err && <div style={{ background: C.rA, border: `1px solid #ff3e6c33`, borderRadius: 10, padding: "11px 20px", color: C.rose, fontSize: 13, maxWidth: 440 }}>{err}</div>}
+                    <div style={{ display: "flex", gap: 13, flexWrap: "wrap", justifyContent: "center" }}>
+                        {[["🗣", "Speech Rate", "Fast or slow speech signals anxiety or fatigue"], ["🔑", "Keywords", "Detects 50+ stress and anxiety-related words"], ["🔄", "Repetition", "Rumination patterns reveal mental overload"], ["💬", "Fillers", "Hesitation words like um, uh, like track anxiety"]].map(([ic, t, d], i) => (
+                            <div key={i} style={{ background: C.bg2, border: `1px solid ${C.b0}`, borderRadius: 14, padding: "16px 14px", width: 158, textAlign: "center" }}>
+                                <div style={{ fontSize: 22, marginBottom: 7 }}>{ic}</div>
+                                <div style={{ color: C.txt, fontFamily: "'Space Grotesk',sans-serif", fontWeight: 600, fontSize: 12, marginBottom: 4 }}>{t}</div>
+                                <div style={{ color: C.sub, fontSize: 11, lineHeight: 1.5 }}>{d}</div>
+                            </div>
+                        ))}
+                    </div>
+                    <button className="hov" onClick={startListen} style={{ padding: "15px 50px", borderRadius: 12, border: "none", cursor: "pointer", background: "linear-gradient(135deg,#b06bff,#00e5ff)", color: "#050912", fontFamily: "'Space Grotesk',sans-serif", fontWeight: 700, fontSize: 15, boxShadow: "0 6px 28px #b06bff22" }}>
+                        🎙  Start Listening
+                    </button>
+                </div>
+            );
+
+            if (phase === "listening") return (
+                <div className="fu" style={{ background: C.card, border: `1px solid ${C.b1}`, borderRadius: 22, padding: "40px" }}>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 300px", gap: 20 }}>
+                        <div>
+                            <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 18 }}>
+                                <div style={{ width: 44, height: 44, borderRadius: "50%", background: C.rA, border: `2px solid ${C.rose}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, animation: "pulse 1.2s infinite" }}>🎙</div>
+                                <div>
+                                    <div style={{ color: C.rose, fontFamily: "'Space Grotesk',sans-serif", fontWeight: 700, fontSize: 16, display: "flex", alignItems: "center", gap: 8 }}>
+                                        <span style={{ animation: "blink 1s infinite" }}>⏺</span> Listening — {dur}s
+                                    </div>
+                                    <div style={{ color: C.sub, fontSize: 11 }}>Speak naturally about how you feel today…</div>
+                                </div>
+                            </div>
+                            <VoiceWave active={active} color={C.violet} />
+                            <div style={{ marginTop: 18, background: C.bg2, borderRadius: 14, border: `1px solid ${C.b1}`, padding: "16px 18px", minHeight: 130, maxHeight: 200, overflowY: "auto" }}>
+                                {transcript
+                                    ? <p style={{ color: C.txt, fontSize: 14, lineHeight: 1.8, fontStyle: "italic" }}>"{transcript}<span style={{ animation: "blink .8s infinite", color: C.cyan }}>|</span>"</p>
+                                    : <p style={{ color: C.sub, fontSize: 13, lineHeight: 1.7 }}>Your speech will appear here in real time…<br /><span style={{ fontSize: 11, fontFamily: "'JetBrains Mono',monospace" }}>Speak clearly for 10+ seconds</span></p>}
+                            </div>
+                            <div style={{ marginTop: 12, display: "flex", gap: 8, flexWrap: "wrap" }}>
+                                <Tag label={`${transcript.trim().split(/\s+/).filter(Boolean).length} words`} color={C.violet} />
+                                <Tag label={`${dur}s recorded`} color={C.cyan} />
+                                {dur >= 10 && <Tag label="Ready" color={C.lime} icon="✓" />}
+                            </div>
+                        </div>
+                        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                            <div style={{ background: C.bg2, border: `1px solid ${C.b0}`, borderRadius: 14, padding: 16 }}>
+                                <div style={{ color: C.sub, fontSize: 9, fontFamily: "'JetBrains Mono',monospace", letterSpacing: 1.5, marginBottom: 9 }}>WHAT TO SAY</div>
+                                {["How you feel right now", "What is making you anxious", "Your workload and schedule", "How you slept last night", "What is on your mind"].map((t, i) => (
+                                    <div key={i} style={{ display: "flex", gap: 8, marginBottom: 7 }}>
+                                        <span style={{ color: C.violet, fontSize: 12 }}>•</span>
+                                        <span style={{ color: C.sub, fontSize: 12, lineHeight: 1.5 }}>{t}</span>
+                                    </div>
+                                ))}
+                            </div>
+                            <button className="hov" onClick={stopAnalyze} disabled={dur < 5 && transcript.length < 10} style={{ padding: "13px", borderRadius: 11, border: "none", cursor: dur >= 5 || transcript.length >= 10 ? "pointer" : "not-allowed", background: dur >= 5 || transcript.length >= 10 ? "linear-gradient(135deg,#b06bff,#00e5ff)" : C.dim, color: dur >= 5 || transcript.length >= 10 ? "#050912" : C.sub, fontFamily: "'Space Grotesk',sans-serif", fontWeight: 700, fontSize: 14 }}>
+                                {dur < 5 ? "⏳ Keep talking…" : "🔍 Stop + Analyze"}
+                            </button>
+                            <button onClick={() => { recognRef.current?.stop(); reset(); }} style={{ padding: "9px", borderRadius: 10, border: `1px solid ${C.b0}`, background: "transparent", color: C.sub, fontSize: 13, cursor: "pointer" }}>✕ Cancel</button>
+                        </div>
+                    </div>
+                </div>
+            );
+
+            if (phase === "proc") return (
+                <div style={{ background: C.card, border: `1px solid ${C.b1}`, borderRadius: 22, padding: "70px 40px", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: 20 }}>
+                    <div style={{ position: "relative", width: 88, height: 88 }}>
+                        <div style={{ position: "absolute", inset: 0, border: `3px solid ${C.b0}`, borderTop: `3px solid ${C.violet}`, borderRadius: "50%", animation: "spin 1s linear infinite" }} />
+                        <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28 }}>🎙</div>
+                    </div>
+                    <div style={{ fontFamily: "'Space Grotesk',sans-serif", fontWeight: 700, fontSize: 21, color: C.txt }}>Analyzing Your Speech…</div>
+                    <div style={{ color: C.sub, fontSize: 13, lineHeight: 1.8 }}>{transcript.trim().split(/\s+/).filter(Boolean).length} words sent to NLP engine<br />Checking keywords, speech rate, filler words…</div>
+                </div>
+            );
+
+            if (phase === "done" && result) return <ResultCard result={result} onReset={reset} label="New Voice Scan" />;
+            return null;
+        }
+
+        /* ===== COMBINED SCAN PAGE ===== */
+        function CombinedScanPage({ onResult, ok }) {
+            const vRef = useRef(null), streamRef = useRef(null), timerRef = useRef(null), framesRef = useRef([]);
+            const [phase, setPhase] = useState("idle");
+            const [sec, setSec] = useState(0);
+            const [transcript, setTranscript] = useState("");
+            const [result, setResult] = useState(null);
+            const [err, setErr] = useState("");
+            const [micOn, setMicOn] = useState(false);
+            const recognRef = useRef(null);
+            const MIN = 5;
+
+            useEffect(() => () => stopAll(), []);
+            function stopAll() { streamRef.current?.getTracks().forEach(t => t.stop()); streamRef.current = null; recognRef.current?.stop(); clearInterval(timerRef.current); }
+
+            async function startAll() {
+                setErr(""); setPhase("perm");
+                try {
+                    // Start camera first
+                    const s = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+                    streamRef.current = s;
+                    if (vRef.current) { vRef.current.srcObject = s; await vRef.current.play(); }
+
+                    // Start Speech
+                    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+                    if (SR) {
+                        const r = new SR(); r.continuous = true; r.interimResults = true; r.lang = "en-US";
+                        let full = "";
+                        r.onresult = e => { let interim = ""; for (let i = e.resultIndex; i < e.results.length; i++) { if (e.results[i].isFinal) full += e.results[i][0].transcript + " "; else interim += e.results[i][0].transcript; } setTranscript((full + interim).trim()); };
+                        r.onerror = (e) => {
+                            if (e.error === 'no-speech' || e.error === 'aborted') return;
+                            console.warn("Mic Error:", e.error); setMicOn(false);
+                        };
+                        r.onend = () => {
+                            if (phase === "rec" && micOn) {
+                                try { recognRef.current?.start(); } catch (err) { setMicOn(false); }
+                            } else {
+                                setMicOn(false);
+                            }
+                        };
+                        r.start(); recognRef.current = r; setMicOn(true);
+                    }
+                    setPhase("rec"); setSec(0); framesRef.current = [];
+                    let t = 0;
+                    timerRef.current = setInterval(() => { t++; setSec(t); if (vRef.current?.readyState >= 2) { try { framesRef.current.push(grabFrame(vRef.current)); } catch { } } }, 1000);
+                } catch (e) {
+                    console.error("Combined Scan Error:", e);
+                    let msg = "Could not initialize scan.";
+                    if (e.name === "NotAllowedError") msg = "Camera/Mic permission denied. Please allow access in browser settings.";
+                    else if (e.name === "NotFoundError") msg = "Hardware not found. Check camera/mic connection.";
+                    else if (e.name === "NotReadableError" || e.message?.includes("Timeout")) {
+                        msg = "Camera Timeout. Hardware failed to respond. Please restart your PC or check your webcam drivers in Device Manager.";
+                    }
+                    else msg = `Scan Error: ${e.message || e.name}`;
+                    setErr(msg);
+                    setPhase("idle");
+                }
+            }
+
+            async function analyze() {
+                clearInterval(timerRef.current); stopAll(); setPhase("proc");
+                let res = null;
+                if (ok) res = await apiPost("/combined/analyze", { frames: framesRef.current.slice(0, 8), transcript, duration: sec });
+                if (!res) {
+                    await new Promise(r => setTimeout(r, 2000));
+                    const s = parseFloat((3.2 + Math.random() * 3.8).toFixed(1));
+                    const lv = lvlFromScore(s);
+                    res = { stress_score: s, stress_level: lv, confidence: 62, face_score: s + .2, voice_score: s - .2, face_level: lv, voice_level: lv, facial_cues: ["Backend offline — simulated"], voice_cues: ["Start backend.py for real analysis"], posture_cues: ["Run: python backend.py"], brief_summary: "Simulated combined result.", recommendations: RECS[lv], source: "combined_sim" };
+                }
+                setResult(res); onResult(res); setPhase("done");
+            }
+
+            function reset() { setResult(null); setPhase("idle"); setTranscript(""); setSec(0); framesRef.current = []; setErr(""); }
+
+            if (phase === "idle") return (
+                <div className="fu" style={{ background: C.card, border: `1px solid ${C.b1}`, borderRadius: 22, padding: "50px 40px", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: 24 }}>
+                    <div style={{ display: "flex", gap: 14, alignItems: "center" }}>
+                        <div style={{ width: 70, height: 70, borderRadius: "50%", border: `2px solid ${C.cB}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 30, animation: "glow 3s infinite", background: C.cA }}>👁</div>
+                        <div style={{ fontSize: 26, color: C.sub, fontWeight: 700 }}>+</div>
+                        <div style={{ width: 70, height: 70, borderRadius: "50%", border: `2px solid #b06bff44`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 30, background: C.vA }}>🎙</div>
+                    </div>
+                    <div>
+                        <h2 style={{ fontFamily: "'Space Grotesk',sans-serif", fontWeight: 700, fontSize: 26, color: C.txt, marginBottom: 10 }}>Combined Scan — Highest Accuracy</h2>
+                        <p style={{ color: C.sub, fontSize: 14, maxWidth: 520, lineHeight: 1.85, margin: "0 auto" }}>
+                            Face scanning and voice analysis run <strong style={{ color: C.cyan }}>simultaneously</strong>. Results are merged using confidence-weighted averaging for the most accurate stress estimate.
+                        </p>
+                    </div>
+                    {err && <div style={{ background: C.rA, border: `1px solid #ff3e6c33`, borderRadius: 10, padding: "11px 20px", color: C.rose, fontSize: 13 }}>{err}</div>}
+                    <button className="hov" onClick={startAll} style={{ padding: "15px 50px", borderRadius: 12, border: "none", cursor: "pointer", background: "linear-gradient(135deg,#00e5ff,#b06bff,#a8ff3e)", color: "#050912", fontFamily: "'Space Grotesk',sans-serif", fontWeight: 700, fontSize: 15, boxShadow: "0 6px 28px #00e5ff22" }}>
+                        ⚡  Start Combined Scan
+                    </button>
+                </div>
+            );
+
+            if (phase === "perm") return (
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "100px 20px", gap: 14 }}>
+                    <Spinner sz={50} /><div style={{ color: C.cyan, fontFamily: "'Space Grotesk',sans-serif", fontWeight: 700, fontSize: 18 }}>Starting camera + microphone…</div>
+                </div>
+            );
+
+            if (phase === "rec") return (
+                <div className="fu" style={{ display: "grid", gridTemplateColumns: "1fr 340px", gap: 18 }}>
+                    <div style={{ borderRadius: 20, overflow: "hidden", position: "relative", border: `2px solid ${C.b1}` }}>
+                        <video ref={vRef} autoPlay muted playsInline style={{ width: "100%", transform: "scaleX(-1)" }} />
+                        {[["top", "left"], ["top", "right"], ["bottom", "left"], ["bottom", "right"]].map(([v, h], i) => (
+                            <div key={i} style={{ position: "absolute", [v]: 12, [h]: 12, width: 22, height: 22, [`border${v[0].toUpperCase() + v.slice(1)}`]: `2px solid ${C.cyan}`, [`border${h[0].toUpperCase() + h.slice(1)}`]: `2px solid ${C.cyan}` }} />
+                        ))}
+                        <div style={{ position: "absolute", top: 13, left: "50%", transform: "translateX(-50%)", background: "#ff3e6cdd", borderRadius: 30, padding: "4px 14px", fontSize: 11, fontFamily: "'JetBrains Mono',monospace", color: "#fff", display: "flex", alignItems: "center", gap: 7 }}>
+                            <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#fff", animation: "blink 1s infinite" }} />
+                            REC {sec}s · {framesRef.current.length} frames
+                        </div>
+                    </div>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                        <div style={{ background: C.card, border: `1px solid ${C.b1}`, borderRadius: 16, padding: 18 }}>
+                            <div style={{ color: C.lime, fontFamily: "'Space Grotesk',sans-serif", fontWeight: 600, fontSize: 13, display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}><Dot color={C.lime} />Camera: {framesRef.current.length} frames</div>
+                            <div style={{ color: micOn ? C.violet : C.sub, fontFamily: "'Space Grotesk',sans-serif", fontWeight: 600, fontSize: 13, display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}><Dot on={micOn} color={C.violet} />Mic: {transcript.trim().split(/\s+/).filter(Boolean).length} words</div>
+                            <VoiceWave active={micOn} color={C.violet} />
+                            {transcript && <div style={{ marginTop: 10, color: C.sub, fontSize: 11, lineHeight: 1.5, fontStyle: "italic", maxHeight: 60, overflowY: "auto" }}>"{transcript.slice(0, 120)}…"</div>}
+                        </div>
+                        <div style={{ height: 4, background: C.b0, borderRadius: 2, overflow: "hidden" }}>
+                            <div style={{ height: "100%", borderRadius: 2, width: `${Math.min((sec / MIN) * 100, 100)}%`, background: `linear-gradient(90deg,${C.cyan},${C.violet},${C.lime})`, transition: "width .8s" }} />
+                        </div>
+                        <button className="hov" onClick={analyze} disabled={sec < MIN} style={{ padding: "13px", borderRadius: 11, border: "none", cursor: sec >= MIN ? "pointer" : "not-allowed", background: sec >= MIN ? "linear-gradient(135deg,#00e5ff,#b06bff)" : C.dim, color: sec >= MIN ? "#050912" : C.sub, fontFamily: "'Space Grotesk',sans-serif", fontWeight: 700, fontSize: 14 }}>
+                            {sec < MIN ? `⏳ ${MIN - sec}s more…` : "⚡ Analyze Both"}
+                        </button>
+                        <button onClick={() => { stopAll(); reset(); }} style={{ padding: "9px", borderRadius: 10, border: `1px solid ${C.b0}`, background: "transparent", color: C.sub, fontSize: 13, cursor: "pointer" }}>✕ Cancel</button>
+                    </div>
+                </div>
+            );
+
+            if (phase === "proc") return (
+                <div style={{ background: C.card, border: `1px solid ${C.b1}`, borderRadius: 22, padding: "70px 40px", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: 20 }}>
+                    <div style={{ display: "flex", gap: 16 }}><Spinner sz={44} color={C.cyan} /><Spinner sz={44} color={C.violet} /></div>
+                    <div style={{ fontFamily: "'Space Grotesk',sans-serif", fontWeight: 700, fontSize: 21, color: C.txt }}>Analyzing Face + Voice Together…</div>
+                    <div style={{ color: C.sub, fontSize: 13 }}>Merging OpenCV results with NLP speech analysis</div>
+                </div>
+            );
+
+            if (phase === "done" && result) return <ResultCard result={result} onReset={reset} label="New Combined Scan" />;
+            return null;
+        }
+
+        /* ===== CHAT PAGE ===== */
+        function ChatPage({ ctx }) {
+            const [msgs, setMsgs] = useState([{ role: "assistant", content: "Hey 🌿 I'm MindMate. I've seen your latest stress scan and I'm here to support you. How are you feeling right now?" }]);
+            const [input, setInput] = useState("");
+            const [loading, setLoading] = useState(false);
+            const endRef = useRef(null);
+            const lv = ctx ? LVL[ctx.stress_level] : null;
+
+            useEffect(() => endRef.current?.scrollIntoView({ behavior: "smooth" }), [msgs, loading]);
+
+            async function send() {
+                if (!input.trim() || loading) return;
+                const um = { role: "user", content: input.trim() };
+                const next = [...msgs, um];
+                setMsgs(next); setInput(""); setLoading(true);
+                const ctxStr = ctx ? `Latest scan: ${ctx.stress_level} stress (${ctx.stress_score}/10). ${ctx.brief_summary || ""}` : "No scan yet.";
+                try {
+                    const r = await fetch(API + "/chat", {
+                        method: "POST", headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ messages: next.map(m => ({ role: m.role, content: m.content })), context: ctxStr })
+                    });
+                    const d = await r.json();
+                    setMsgs(p => [...p, { role: "assistant", content: d.reply || "I'm here for you. Tell me what's on your mind." }]);
+                } catch {
+                    setMsgs(p => [...p, { role: "assistant", content: "I'm here for you 💙 Sometimes just talking helps — what has been weighing on you today?" }]);
+                }
+                setLoading(false);
+            }
+
+            return (
+                <div className="fu" style={{ display: "flex", flexDirection: "column", height: "calc(100vh - 114px)", background: C.card, border: `1px solid ${C.b0}`, borderRadius: 22, overflow: "hidden" }}>
+                    <div style={{ padding: "13px 18px", borderBottom: `1px solid ${C.b0}`, background: C.card2, display: "flex", alignItems: "center", gap: 11 }}>
+                        <div style={{ width: 40, height: 40, borderRadius: "50%", flexShrink: 0, background: "linear-gradient(135deg,#00e5ff,#b06bff)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 17 }}>🧘</div>
+                        <div style={{ flex: 1 }}>
+                            <div style={{ fontFamily: "'Space Grotesk',sans-serif", fontWeight: 700, color: C.txt, fontSize: 14 }}>MindMate AI</div>
+                            <div style={{ color: C.lime, fontSize: 10, display: "flex", alignItems: "center", gap: 5 }}><Dot size={5} />Vision-aware · Always here</div>
+                        </div>
+                        {ctx && lv && <Tag label={lv.em + " " + ctx.stress_score + "/10"} color={lv.c} />}
+                    </div>
+                    <div style={{ flex: 1, overflowY: "auto", padding: "16px 18px", display: "flex", flexDirection: "column", gap: 11 }}>
+                        {msgs.map((m, i) => (
+                            <div key={i} className="si" style={{ display: "flex", justifyContent: m.role === "user" ? "flex-end" : "flex-start", animationDelay: `${Math.min(i * .04, .25)}s` }}>
+                                {m.role === "assistant" && <div style={{ width: 28, height: 28, borderRadius: "50%", flexShrink: 0, background: "linear-gradient(135deg,#00e5ff,#b06bff)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, marginRight: 8, alignSelf: "flex-end", marginBottom: 2 }}>🧘</div>}
+                                <div style={{ maxWidth: "72%", padding: "11px 16px", lineHeight: 1.72, fontSize: 14, borderRadius: m.role === "user" ? "18px 18px 4px 18px" : "4px 18px 18px 18px", background: m.role === "user" ? "linear-gradient(135deg,#00e5ff,#b06bff)" : C.bg2, border: m.role === "assistant" ? `1px solid ${C.b0}` : "none", color: m.role === "user" ? "#050912" : C.txt }}>
+                                    {m.content}
+                                </div>
+                            </div>
+                        ))}
+                        {loading && <div style={{ display: "flex", gap: 8, alignItems: "flex-end" }}>
+                            <div style={{ width: 28, height: 28, borderRadius: "50%", background: "linear-gradient(135deg,#00e5ff,#b06bff)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, flexShrink: 0 }}>🧘</div>
+                            <div style={{ background: C.bg2, border: `1px solid ${C.b0}`, borderRadius: "4px 18px 18px 18px", padding: "13px 16px", display: "flex", gap: 5 }}>
+                                {[0, 1, 2].map(i => <div key={i} style={{ width: 6, height: 6, borderRadius: "50%", background: C.cyan, animation: `bounceUp 1.2s ${i * .2}s infinite` }} />)}
+                            </div>
+                        </div>}
+                        <div ref={endRef} />
+                    </div>
+                    <div style={{ padding: "12px 14px", borderTop: `1px solid ${C.b0}`, display: "flex", gap: 8, background: C.card2 }}>
+                        <input value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === "Enter" && !e.shiftKey && send()} placeholder="How are you feeling? What is on your mind…" style={{ flex: 1, padding: "11px 16px", borderRadius: 10, fontSize: 13, outline: "none", border: `1px solid ${C.b1}`, background: C.bg2, color: C.txt }} />
+                        <button onClick={send} disabled={loading || !input.trim()} style={{ padding: "11px 17px", borderRadius: 10, border: "none", fontSize: 16, fontWeight: 700, background: "linear-gradient(135deg,#00e5ff,#b06bff)", color: "#050912", cursor: loading || !input.trim() ? "not-allowed" : "pointer", opacity: loading || !input.trim() ? .5 : 1, transition: "opacity .2s" }}>➤</button>
+                    </div>
+                </div>
+            );
+        }
+
+        /* ===== TRACKER PAGE ===== */
+        function TrackerPage({ local }) {
+            const [hist, setHist] = useState(local);
+            const [loading, setLoading] = useState(false);
+            const [filter, setFilter] = useState("all");
+
+            useEffect(() => { setLoading(true); apiGet("/scan/history?limit=40").then(d => { if (d?.history?.length) setHist(d.history); else setHist(local); setLoading(false); }); }, []);
+
+            const filtered = filter === "all" ? hist : hist.filter(h => h.source?.includes(filter));
+            const avg = filtered.length ? (filtered.reduce((a, b) => a + b.stress_score, 0) / filtered.length).toFixed(1) : "—";
+
+            const W = 580, H = 148, P = { t: 14, b: 24, l: 28, r: 10 };
+            const pts = [...filtered].reverse().slice(0, 14);
+            const iw = W - P.l - P.r, ih = H - P.t - P.b;
+            const xs = pts.map((_, i) => P.l + (i / Math.max(pts.length - 1, 1)) * iw);
+            const ys = pts.map(d => P.t + ih - (Math.min(d.stress_score, 10) / 10) * ih);
+            const linePath = xs.map((x, i) => `${i === 0 ? "M" : "L"} ${x} ${ys[i]}`).join(" ");
+            const fillPath = pts.length > 1 ? `${linePath} L ${xs[xs.length - 1]} ${P.t + ih} L ${xs[0]} ${P.t + ih} Z` : "";
+            const srcC = { face_scan: C.cyan, voice: C.violet, combined: C.lime, face_sim: C.sub, voice_sim: C.sub, combined_sim: C.sub };
+
+            return (
+                <div className="fu" style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+                    {loading && <div style={{ textAlign: "center", color: C.sub, fontSize: 11, fontFamily: "'JetBrains Mono',monospace", padding: 8 }}>⏳ Syncing…</div>}
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 12 }}>
+                        {[["Average", avg, "/10", C.cyan], ["Total Scans", hist.length, "", C.violet], ["Face Scans", hist.filter(h => h.source?.includes("face")).length, "", C.lime], ["Voice Scans", hist.filter(h => h.source?.includes("voice")).length, "", C.amber]].map(([lbl, v, u, c], i) => (
+                            <div key={i} className="card-h" style={{ background: C.card, border: `1px solid ${C.b0}`, borderRadius: 16, padding: "16px 14px", textAlign: "center" }}>
+                                <div style={{ color: C.sub, fontSize: 8, fontFamily: "'JetBrains Mono',monospace", letterSpacing: 1.5, marginBottom: 6 }}>{lbl}</div>
+                                <div style={{ color: c, fontFamily: "'Space Grotesk',sans-serif", fontWeight: 700, fontSize: 26, lineHeight: 1 }}>{v}<span style={{ fontSize: 11, opacity: .7 }}>{u}</span></div>
+                            </div>
+                        ))}
+                    </div>
+
+                    <div style={{ background: C.card, border: `1px solid ${C.b0}`, borderRadius: 20, padding: "20px 20px 14px" }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+                            <div style={{ fontFamily: "'Space Grotesk',sans-serif", fontWeight: 700, color: C.txt, fontSize: 14 }}>Stress Timeline</div>
+                            <div style={{ display: "flex", gap: 7 }}>
+                                {[["all", "All"], ["face", "Face"], ["voice", "Voice"], ["combined", "Combined"]].map(([v, l]) => (
+                                    <button key={v} onClick={() => setFilter(v)} style={{ padding: "4px 11px", borderRadius: 20, border: `1px solid ${filter === v ? C.cyan : C.b0}`, background: filter === v ? C.cA : "transparent", color: filter === v ? C.cyan : C.sub, fontSize: 10, cursor: "pointer", fontFamily: "'JetBrains Mono',monospace" }}>{l}</button>
+                                ))}
+                            </div>
+                        </div>
+                        <svg width="100%" viewBox={`0 0 ${W} ${H}`} style={{ overflow: "visible" }}>
+                            <defs>
+                                <linearGradient id="tg" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="0%" stopColor={C.cyan} stopOpacity=".13" />
+                                    <stop offset="100%" stopColor={C.cyan} stopOpacity=".01" />
+                                </linearGradient>
+                            </defs>
+                            {[0, 2.5, 5, 7.5, 10].map(v => <line key={v} x1={P.l} y1={P.t + ih - (v / 10) * ih} x2={W - P.r} y2={P.t + ih - (v / 10) * ih} stroke={C.b0} strokeWidth={1} />)}
+                            {pts.length > 1 && <><path d={fillPath} fill="url(#tg)" /><path d={linePath} fill="none" stroke={C.cyan} strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" style={{ filter: `drop-shadow(0 0 5px ${C.cyan}66)` }} /></>}
+                            {xs.map((x, i) => { const d = pts[i]; const lv2 = LVL[d.stress_level]; const sc = srcC[d.source] || C.sub; return <g key={i}><circle cx={x} cy={ys[i]} r={5} fill={lv2?.c || C.cyan} stroke={C.card} strokeWidth={2} /><text x={x} y={P.t + ih + 18} textAnchor="middle" fill={C.dim} fontSize={8} fontFamily="'JetBrains Mono',monospace">{d.date}</text><text x={x} y={ys[i] - 9} textAnchor="middle" fill={lv2?.c || C.cyan} fontSize={9} fontFamily="'Space Grotesk',sans-serif" fontWeight={700}>{d.stress_score}</text></g>; })}
+                            {[0, 5, 10].map(v => <text key={v} x={P.l - 5} y={P.t + ih - (v / 10) * ih + 3} textAnchor="end" fill={C.dim} fontSize={8} fontFamily="'JetBrains Mono',monospace">{v}</text>)}
+                        </svg>
+                    </div>
+
+                    <div style={{ background: C.card, border: `1px solid ${C.b0}`, borderRadius: 20, padding: 20 }}>
+                        <div style={{ fontFamily: "'Space Grotesk',sans-serif", fontWeight: 700, color: C.txt, fontSize: 14, marginBottom: 14 }}>Scan Log</div>
+                        {filtered.slice(0, 20).map((d, i) => {
+                            const lv2 = LVL[d.stress_level]; const sc = srcC[d.source] || C.sub; return (
+                                <div key={d.id || i} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 12px", background: C.bg2, borderRadius: 9, border: `1px solid ${C.b0}`, marginBottom: 6 }}>
+                                    <div style={{ color: C.sub, fontSize: 10, fontFamily: "'JetBrains Mono',monospace", width: 52, flexShrink: 0 }}>{d.date}</div>
+                                    <div style={{ fontSize: 8, padding: "2px 7px", borderRadius: 5, flexShrink: 0, fontFamily: "'JetBrains Mono',monospace", background: `${sc}1a`, color: sc, border: `1px solid ${sc}33` }}>{(d.source || "scan").replace(/_/g, " ").toUpperCase()}</div>
+                                    <div style={{ flex: 1, height: 3, background: C.b0, borderRadius: 2, overflow: "hidden" }}><div style={{ height: "100%", background: lv2?.c || C.cyan, borderRadius: 2, width: `${(d.stress_score / 10) * 100}%` }} /></div>
+                                    <div style={{ color: lv2?.c, fontFamily: "'Space Grotesk',sans-serif", fontWeight: 700, fontSize: 13, width: 28, textAlign: "right" }}>{d.stress_score}</div>
+                                    <div style={{ background: `${lv2?.c || C.cyan}15`, color: lv2?.c || C.cyan, fontSize: 10, fontFamily: "'Plus Jakarta Sans',sans-serif", fontWeight: 600, padding: "2px 10px", borderRadius: 20, width: 76, textAlign: "center", flexShrink: 0 }}>{lv2?.em} {d.stress_level}</div>
+                                </div>
+                            );
+                        })}
+                        {!filtered.length && <div style={{ color: C.sub, textAlign: "center", padding: "24px 0", fontSize: 13 }}>No scan history yet — run your first scan!</div>}
+                    </div>
+                </div>
+            );
+        }
+
+        /* ===== WELLNESS PAGE ===== */
+        function WellnessPage() {
+            const [bPhase, setBPhase] = useState("idle");
+            const [bSec, setBSec] = useState(0);
+            const [bRound, setBRound] = useState(0);
+            const breathRef = useRef(null);
+            const [tip, setTip] = useState(0);
+
+            const TIPS = [
+                { icon: "💤", title: "Sleep Hygiene", body: "Aim for 7-9 hours. Maintain a consistent wake time, even on weekends. Avoid screens 1 hour before bed." },
+                { icon: "🚶", title: "Movement Breaks", body: "Every 45 minutes of studying, take a 5-minute walk. Physical movement directly reduces cortisol levels." },
+                { icon: "🥗", title: "Nutrition", body: "Avoid skipping meals. Complex carbs stabilize blood sugar and mood. Limit caffeine after 2pm." },
+                { icon: "📱", title: "Digital Detox", body: "Set app time limits. Notifications trigger cortisol spikes. Try 1 hour phone-free before sleep." },
+                { icon: "🤝", title: "Social Support", body: "Isolation amplifies stress. Even 10 minutes with a friend or calling family significantly reduces anxiety." },
+                { icon: "📓", title: "Journaling", body: "5 minutes of writing about what stressed you today helps your brain process and compartmentalize it." },
+            ];
+
+            function startBreath() {
+                setBPhase("in"); setBSec(4); setBRound(1); clearInterval(breathRef.current);
+                let phase = "in", s = 4, round = 1;
+                breathRef.current = setInterval(() => {
+                    s--;
+                    if (s <= 0) { if (phase === "in") { phase = "hold"; s = 7; } else if (phase === "hold") { phase = "out"; s = 8; } else { phase = "in"; s = 4; round++; if (round > 4) { stopBreath(); return; } } }
+                    setBPhase(phase); setBSec(s); setBRound(round);
+                }, 1000);
+            }
+            function stopBreath() { clearInterval(breathRef.current); setBPhase("idle"); setBSec(0); setBRound(0); }
+            useEffect(() => () => clearInterval(breathRef.current), []);
+
+            const bColor = bPhase === "in" ? C.cyan : bPhase === "hold" ? C.amber : bPhase === "out" ? C.lime : C.sub;
+            const bLabel = bPhase === "in" ? "Breathe IN" : bPhase === "hold" ? "Hold" : bPhase === "out" ? "Breathe OUT" : "4-7-8 Breathing";
+
+            return (
+                <div className="fu" style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 18 }}>
+                        {/* Breathing */}
+                        <div style={{ background: C.card, border: `1px solid ${C.b0}`, borderRadius: 20, padding: 26, textAlign: "center" }}>
+                            <div style={{ fontFamily: "'Space Grotesk',sans-serif", fontWeight: 700, color: C.txt, fontSize: 15, marginBottom: 18 }}>4-7-8 Breathing Exercise</div>
+                            <div style={{ position: "relative", width: 130, height: 130, margin: "0 auto 20px" }}>
+                                {bPhase !== "idle" && <div style={{ position: "absolute", inset: -14, borderRadius: "50%", border: `2px solid ${bColor}`, opacity: .3, animation: "ripple 2s infinite" }} />}
+                                <div style={{ width: 130, height: 130, borderRadius: "50%", background: `${bColor}18`, border: `3px solid ${bColor}`, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", transition: "transform 1s ease,border-color .5s", transform: bPhase === "in" || bPhase === "hold" ? "scale(1.22)" : "scale(.84)" }}>
+                                    <div style={{ color: bColor, fontFamily: "'Space Grotesk',sans-serif", fontWeight: 700, fontSize: 13, marginBottom: 3, textAlign: "center", padding: "0 8px" }}>{bLabel}</div>
+                                    {bPhase !== "idle" && <div style={{ color: bColor, fontSize: 28, fontFamily: "'Space Grotesk',sans-serif", fontWeight: 700 }}>{bSec}</div>}
+                                </div>
+                            </div>
+                            {bPhase !== "idle" && <div style={{ color: C.sub, fontSize: 11, fontFamily: "'JetBrains Mono',monospace", marginBottom: 14 }}>Round {bRound} of 4</div>}
+                            <button className="hov" onClick={bPhase === "idle" ? startBreath : stopBreath} style={{ padding: "11px 30px", borderRadius: 11, border: "none", cursor: "pointer", background: bPhase === "idle" ? "linear-gradient(135deg,#00e5ff,#b06bff)" : "linear-gradient(135deg,#ff3e6c,#ff7a40)", color: "#050912", fontFamily: "'Space Grotesk',sans-serif", fontWeight: 700, fontSize: 13 }}>
+                                {bPhase === "idle" ? "▶  Start Exercise" : "⏹  Stop"}
+                            </button>
+                            <p style={{ color: C.sub, fontSize: 11, marginTop: 12, lineHeight: 1.6 }}>4 rounds · ~75 seconds · Activates parasympathetic system</p>
+                        </div>
+
+                        {/* Tips */}
+                        <div style={{ background: C.card, border: `1px solid ${C.b0}`, borderRadius: 20, padding: 26 }}>
+                            <div style={{ fontFamily: "'Space Grotesk',sans-serif", fontWeight: 700, color: C.txt, fontSize: 15, marginBottom: 16 }}>Stress Management Tips</div>
+                            <div style={{ display: "flex", gap: 7, flexWrap: "wrap", marginBottom: 16 }}>
+                                {TIPS.map((t, i) => (
+                                    <button key={i} onClick={() => setTip(i)} style={{ padding: "5px 11px", borderRadius: 20, cursor: "pointer", border: `1px solid ${tip === i ? C.cyan : C.b0}`, background: tip === i ? C.cA : "transparent", color: tip === i ? C.cyan : C.sub, fontSize: 11, fontFamily: "'JetBrains Mono',monospace" }}>{t.icon}</button>
+                                ))}
+                            </div>
+                            <div style={{ background: C.bg2, border: `1px solid ${C.b1}`, borderRadius: 14, padding: 20 }}>
+                                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
+                                    <span style={{ fontSize: 28 }}>{TIPS[tip].icon}</span>
+                                    <div style={{ color: C.txt, fontFamily: "'Space Grotesk',sans-serif", fontWeight: 700, fontSize: 16 }}>{TIPS[tip].title}</div>
+                                </div>
+                                <p style={{ color: "#8cb8cc", fontSize: 13, lineHeight: 1.8 }}>{TIPS[tip].body}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Mood check-in */}
+                    <div style={{ background: C.card, border: `1px solid ${C.b0}`, borderRadius: 20, padding: 24 }}>
+                        <div style={{ fontFamily: "'Space Grotesk',sans-serif", fontWeight: 700, color: C.txt, fontSize: 15, marginBottom: 16 }}>Quick Mood Check-In</div>
+                        <div style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
+                            {[["😊", "Great", "I feel good and energized"], ["🙂", "Good", "Things are okay, manageable"], ["😐", "Meh", "Could be better, a bit flat"], ["😟", "Stressed", "Feeling overwhelmed or anxious"], ["😰", "Very Stressed", "Significant stress, need support"], ["😔", "Down", "Low mood, feeling sad"]].map(([em, lbl, desc]) => (
+                                <div key={lbl} className="card-h" style={{ background: C.bg2, border: `1px solid ${C.b0}`, borderRadius: 14, padding: "14px 16px", cursor: "pointer", textAlign: "center", flex: "1 1 130px" }}>
+                                    <div style={{ fontSize: 28, marginBottom: 6 }}>{em}</div>
+                                    <div style={{ color: C.txt, fontFamily: "'Space Grotesk',sans-serif", fontWeight: 600, fontSize: 12, marginBottom: 3 }}>{lbl}</div>
+                                    <div style={{ color: C.sub, fontSize: 10, lineHeight: 1.4 }}>{desc}</div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Crisis */}
+                    <div style={{ background: "#1a000d", border: "1px solid #ff3e6c20", borderRadius: 20, padding: 22 }}>
+                        <div style={{ fontFamily: "'Space Grotesk',sans-serif", fontWeight: 700, color: C.rose, fontSize: 14, marginBottom: 12 }}>Crisis Support Resources</div>
+                        <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 12 }}>
+                            {[["National Crisis Line", "988 (call or text)", "24/7 mental health crisis support", C.rose], ["Crisis Text Line", "Text HOME to 741741", "Free 24/7 crisis counseling", C.amber], ["Campus Counseling", "See your student portal", "Free confidential counseling", C.violet]].map(([n, c, d, col]) => (
+                                <div key={n} style={{ background: C.bg, border: `1px solid ${col}20`, borderRadius: 12, padding: "14px 15px" }}>
+                                    <div style={{ color: col, fontFamily: "'Space Grotesk',sans-serif", fontWeight: 700, fontSize: 12, marginBottom: 4 }}>{n}</div>
+                                    <div style={{ color: C.txt, fontFamily: "'JetBrains Mono',monospace", fontSize: 13, marginBottom: 4 }}>{c}</div>
+                                    <div style={{ color: C.sub, fontSize: 11, lineHeight: 1.5 }}>{d}</div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        /* ===== DASHBOARD PAGE ===== */
+        function DashboardPage({ hist, last, setTab, ok, checking, stats, onRetry }) {
+            const lv = last ? LVL[last.stress_level] : null;
+            const avg = hist.length ? (hist.reduce((a, b) => a + b.stress_score, 0) / hist.length).toFixed(1) : "—";
+            return (
+                <div className="fu" style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+                    {/* Hero */}
+                    <div style={{ background: "linear-gradient(140deg,#06091a,#08112a)", border: `1px solid ${C.b1}`, borderRadius: 22, padding: 28, display: "flex", alignItems: "center", gap: 24, position: "relative", overflow: "hidden" }}>
+                        <div style={{ position: "absolute", top: -80, right: -80, width: 280, height: 280, borderRadius: "50%", background: `radial-gradient(circle,${C.cA},transparent)`, pointerEvents: "none" }} />
+                        <div style={{ flex: 1, position: "relative" }}>
+                            <div style={{ color: C.sub, fontSize: 11, marginBottom: 7, fontFamily: "'JetBrains Mono',monospace" }}>{new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}</div>
+                            <h2 style={{ fontFamily: "'Space Grotesk',sans-serif", fontWeight: 700, fontSize: 26, color: C.txt, marginBottom: 10, lineHeight: 1.2 }}>Welcome back, Alex 👋</h2>
+                            <p style={{ color: C.sub, fontSize: 13, lineHeight: 1.85, maxWidth: 480 }}>
+                                {last ? `Latest scan: ${last.stress_level} stress (${last.stress_score}/10) via ${last.source?.replace(/_/g, " ")}.` : "Run a scan to get started — face, voice, or combined."}
+                            </p>
+                            <div style={{ display: "flex", gap: 10, marginTop: 16, flexWrap: "wrap" }}>
+                                <button className="hov" onClick={() => setTab("face")} style={{ padding: "10px 20px", borderRadius: 10, border: "none", cursor: "pointer", background: "linear-gradient(135deg,#00e5ff,#b06bff)", color: "#050912", fontFamily: "'Space Grotesk',sans-serif", fontWeight: 700, fontSize: 13 }}>👁 Face Scan</button>
+                                <button className="hov" onClick={() => setTab("voice")} style={{ padding: "10px 20px", borderRadius: 10, border: `1px solid #b06bff44`, background: C.vA, color: C.violet, fontFamily: "'Space Grotesk',sans-serif", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>🎙 Voice Scan</button>
+                                <button className="hov" onClick={() => setTab("combined")} style={{ padding: "10px 20px", borderRadius: 10, border: `1px solid ${C.cB}`, background: C.cA, color: C.cyan, fontFamily: "'Space Grotesk',sans-serif", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>⚡ Combined</button>
+                            </div>
+                        </div>
+                        {last && lv ? <Gauge score={last.stress_score} color={lv.c} size={96} /> : <div style={{ fontSize: 72, flexShrink: 0 }}>🧘</div>}
+                    </div>
+
+                    {/* Stats */}
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 12 }}>
+                        {[["Weekly Avg", avg, "/10", C.cyan], ["Face Scans", hist.filter(h => h.source?.includes("face")).length, "", C.lime], ["Voice Scans", hist.filter(h => h.source?.includes("voice")).length, "", C.violet], ["Backend", ok ? "Online" : "Offline", "", ok ? C.lime : C.rose], ["Dataset", stats ? stats.total_students + "" : "600", " rows", C.amber]].map(([lbl, v, u, c], i) => (
+                            <div key={i} className="card-h" style={{ background: C.card, border: `1px solid ${C.b0}`, borderRadius: 16, padding: "15px 12px", textAlign: "center" }}>
+                                <div style={{ fontSize: 10, color: C.sub, fontFamily: "'JetBrains Mono',monospace", letterSpacing: 1, marginBottom: 6 }}>{lbl}</div>
+                                <div style={{ color: c, fontFamily: "'Space Grotesk',sans-serif", fontWeight: 700, fontSize: 20 }}>{v}<span style={{ fontSize: 10, opacity: .7 }}>{u}</span></div>
+                            </div>
+                        ))}
+                    </div>
+
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 18 }}>
+                        {/* Scan modes */}
+                        <div style={{ background: C.card, border: `1px solid ${C.b0}`, borderRadius: 20, padding: 22 }}>
+                            <div style={{ fontFamily: "'Space Grotesk',sans-serif", fontWeight: 700, color: C.txt, fontSize: 14, marginBottom: 16 }}>Scan Modes</div>
+                            {[["👁", "Face Scan", "OpenCV", "Brow tension, eye state, symmetry", "face", C.cyan], ["🎙", "Voice Scan", "NLP", "Keywords, rate, filler words", "voice", C.violet], ["⚡", "Combined", "Both", "Highest accuracy", "combined", C.lime]].map(([icon, title, tech, desc, t, color]) => (
+                                <div key={t} onClick={() => setTab(t)} className="card-h" style={{ display: "flex", alignItems: "center", gap: 12, padding: "11px 14px", borderRadius: 11, cursor: "pointer", marginBottom: 8, background: `${color}0a`, border: `1px solid ${color}22` }}>
+                                    <div style={{ fontSize: 22, flexShrink: 0 }}>{icon}</div>
+                                    <div style={{ flex: 1 }}>
+                                        <div style={{ color: C.txt, fontFamily: "'Space Grotesk',sans-serif", fontWeight: 600, fontSize: 13 }}>{title} <span style={{ fontSize: 9, fontFamily: "'JetBrains Mono',monospace", color }}>{tech}</span></div>
+                                        <div style={{ color: C.sub, fontSize: 11 }}>{desc}</div>
+                                    </div>
+                                    <div style={{ color: color, fontSize: 16 }}>→</div>
+                                </div>
+                            ))}
+                        </div>
+
+                        {/* Backend status */}
+                        <div style={{ background: C.card, border: `1px solid ${C.b0}`, borderRadius: 20, padding: 22 }}>
+                            <div style={{ fontFamily: "'Space Grotesk',sans-serif", fontWeight: 700, color: C.txt, fontSize: 14, marginBottom: 14 }}>Backend Status</div>
+                            {stats ? (
+                                [["Status", "Connected", C.lime], ["Dataset", `${stats.total_students} students`, C.cyan], ["RF Accuracy", `${(stats.model_accuracy?.rf * 100 || 0).toFixed(1)}%`, C.amber], ["GB Accuracy", `${(stats.model_accuracy?.gb * 100 || 0).toFixed(1)}%`, C.amber], ["SVM Accuracy", `${(stats.model_accuracy?.svm * 100 || 0).toFixed(1)}%`, C.violet], ["OpenCV Face", "Cascades loaded", C.lime], ["Voice NLP", "Ready", C.lime]].map(([k, v, c]) => (
+                                    <div key={k} style={{ display: "flex", justifyContent: "space-between", padding: "7px 0", borderBottom: `1px solid ${C.b0}` }}>
+                                        <span style={{ color: C.sub, fontSize: 12 }}>{k}</span>
+                                        <span style={{ color: c, fontSize: 11, fontFamily: "'JetBrains Mono',monospace" }}>{v}</span>
+                                    </div>
+                                ))
+                            ) : (
+                                <div style={{ textAlign: "center", padding: "14px 0" }}>
+                                    <div style={{ fontSize: 36, marginBottom: 10 }}>{checking ? "🔄" : "🔌"}</div>
+                                    <div style={{ color: checking ? C.cyan : C.rose, fontFamily: "'Space Grotesk',sans-serif", fontWeight: 700, fontSize: 14, marginBottom: 8 }}>{checking ? "Connecting…" : "Backend Offline"}</div>
+                                    <div style={{ color: C.sub, fontSize: 12, lineHeight: 1.7, marginBottom: 14 }}>Start the backend to enable face scanning, voice analysis, and ML predictions.</div>
+                                    {!checking && <>
+                                        <div style={{ background: C.bg2, borderRadius: 9, border: `1px solid ${C.b0}`, padding: "8px 14px", fontFamily: "'JetBrains Mono',monospace", fontSize: 11, color: C.cyan, marginBottom: 12 }}>
+                                            pip install -r requirements.txt<br />python backend.py
+                                        </div>
+                                        <button onClick={onRetry} style={{ padding: "8px 22px", borderRadius: 9, cursor: "pointer", border: `1px solid ${C.cB}`, background: C.cA, color: C.cyan, fontSize: 12, fontFamily: "'Space Grotesk',sans-serif", fontWeight: 700 }}>Retry Connection</button>
+                                    </>}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        /* ===== ROOT APP ===== */
+        function App() {
+            const [tab, setTab] = useState("dash");
+            const [hist, setHist] = useState(seedHist);
+            const [last, setLast] = useState(null);
+            const [ok, setOk] = useState(false);
+            const [checking, setCk] = useState(false);
+            const [stats, setStats] = useState(null);
+            const wasOk = useRef(false);
+            const checkFn = useRef(null);
+
+            async function loadData() {
+                const s = await apiGet("/stats");
+                if (s) setStats(s);
+                const h = await apiGet("/scan/history?limit=30");
+                if (h?.history?.length) {
+                    setHist(prev => {
+                        const all = [...h.history, ...prev.slice(0, 7)];
+                        const seen = new Set();
+                        return all.filter(e => { const k = `${e.date}_${e.stress_score}_${e.source}`; if (seen.has(k)) return false; seen.add(k); return true; });
+                    });
+                }
+            }
+
+            async function checkBackend() {
+                setCk(true);
+                const d = await apiGet("/health");
+                const live = !!d?.status;
+                setCk(false);
+                if (live && !wasOk.current) { wasOk.current = true; setOk(true); loadData(); }
+                else if (!live && wasOk.current) { wasOk.current = false; setOk(false); setStats(null); }
+                else setOk(live);
+            }
+            checkFn.current = checkBackend;
+
+            useEffect(() => {
+                checkBackend();
+                const id = setInterval(() => checkFn.current?.(), 3000);
+                return () => clearInterval(id);
+            }, []);
+
+            function onResult(r) {
+                setLast(r);
+                setHist(p => [{ ...r, date: r.date || fmtDate(), time: r.time || fmtTime() }, ...p.slice(0, 39)]);
+            }
+
+            return (
+                <div style={{ display: "flex", minHeight: "100vh", background: C.bg }}>
+                    <Sidebar tab={tab} setTab={setTab} last={last} ok={ok} checking={checking} />
+                    <div style={{ marginLeft: 214, flex: 1, display: "flex", flexDirection: "column", minHeight: "100vh" }}>
+                        <Topbar tab={tab} ok={ok} checking={checking} />
+                        <main style={{ flex: 1, padding: 22, overflowY: "auto" }}>
+                            {tab === "dash" && <DashboardPage hist={hist} last={last} setTab={setTab} ok={ok} checking={checking} stats={stats} onRetry={checkBackend} />}
+                            {tab === "face" && <FaceScanPage onResult={onResult} ok={ok} />}
+                            {tab === "voice" && <VoiceScanPage onResult={onResult} ok={ok} />}
+                            {tab === "combined" && <CombinedScanPage onResult={onResult} ok={ok} />}
+                            {tab === "chat" && <ChatPage ctx={last} />}
+                            {tab === "tracker" && <TrackerPage local={hist} />}
+                            {tab === "wellness" && <WellnessPage />}
+                        </main>
+                    </div>
+                </div>
+            );
+        }
+
+        ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+    </script>
+</body>
+
+</html>
